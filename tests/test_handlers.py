@@ -95,11 +95,21 @@ async def test_room_handler_should_log_with_extension_logger(
     extension = jp_serverapp.web_app.settings["jupyter_server_ydoc"]
     handler = logging.handlers.BufferingHandler(capacity=1000)
     extension.log.addHandler(handler)
+
+    event = Event()
+
+    def _on_document_change(target: str, e: Any) -> None:
+        if target == "source":
+            event.set()
+
+    doc = YUnicode()
+    doc.observe(_on_document_change)
+
     try:
         path, _ = await rtc_create_file("test_logger.txt", "test")
         websocket, room_name = await rtc_connect_doc_client("text", "file", path)
-        async with websocket as ws, Provider(YUnicode().ydoc, HttpxWebsocket(ws, room_name)):
-            await sleep(0.1)
+        async with websocket as ws, Provider(doc.ydoc, HttpxWebsocket(ws, room_name)):
+            await event.wait()
     finally:
         extension.log.removeHandler(handler)
 

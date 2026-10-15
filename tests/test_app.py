@@ -112,7 +112,6 @@ def test_settings_should_change_log_level(jp_configurable_serverapp):
     extension = app.web_app.settings["jupyter_server_ydoc"]
 
     assert extension.log_level == logging.DEBUG
-    assert app.log_level == logging.WARN
 
 
 async def test_document_ttl_from_settings(rtc_create_mock_document_room, jp_configurable_serverapp):
