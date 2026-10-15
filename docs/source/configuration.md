@@ -68,6 +68,10 @@ jupyter lab --SQLiteYStore.db_path=/path/to/ystore.db
 # Relocate the collaboration session store
 # (default: '<server_root_dir>/.jupyter/collaboration_sessions.json').
 jupyter lab --YDocExtension.session_store_path=/path/to/sessions.json
+
+# The log level of the collaboration extension (default: the server log level).
+# For example, to hide the messages about rooms and files without changing the other server logs:
+jupyter lab --YDocExtension.log_level=WARN
 ```
 
 There is an experimental feature that is currently only supported by the

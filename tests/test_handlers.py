@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import logging.handlers
 from asyncio import Event, sleep
 from typing import Any
 
@@ -86,6 +87,24 @@ async def test_room_handler_doc_client_should_connect(rtc_create_file, rtc_conne
         await sleep(0.1)
 
     assert doc.source == content
+
+
+async def test_room_handler_should_log_with_extension_logger(
+    rtc_create_file, rtc_connect_doc_client, jp_serverapp
+):
+    extension = jp_serverapp.web_app.settings["jupyter_server_ydoc"]
+    handler = logging.handlers.BufferingHandler(capacity=1000)
+    extension.log.addHandler(handler)
+    try:
+        path, _ = await rtc_create_file("test_logger.txt", "test")
+        websocket, room_name = await rtc_connect_doc_client("text", "file", path)
+        async with websocket as ws, Provider(YUnicode().ydoc, HttpxWebsocket(ws, room_name)):
+            await sleep(0.1)
+    finally:
+        extension.log.removeHandler(handler)
+
+    messages = [record.getMessage() for record in handler.buffer]
+    assert f"Initializing room {room_name}" in messages
 
 
 async def test_room_handler_doc_client_should_emit_awareness_event(

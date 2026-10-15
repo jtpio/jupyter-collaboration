@@ -13,6 +13,7 @@ from uuid import uuid4
 from jupyter_server.auth import authorized
 from jupyter_server.auth.decorator import ws_authenticated
 from jupyter_server.base.handlers import APIHandler, JupyterHandler
+from jupyter_server.extension.handler import ExtensionHandlerMixin
 from jupyter_server.utils import ensure_async
 from jupyter_ydoc import ydocs as YDOCS
 from pycrdt import Decoder, Doc, Encoder, UndoManager
@@ -46,7 +47,7 @@ FORK_DOCUMENTS = {}
 FORK_ROOMS: dict[str, dict[str, str]] = {}
 
 
-class YDocWebSocketHandler(WebSocketHandler, JupyterHandler):
+class YDocWebSocketHandler(ExtensionHandlerMixin, WebSocketHandler, JupyterHandler):
     """`YDocWebSocketHandler` uses the singleton pattern for ``WebsocketServer``,
     which is a subclass of ypy-websocket's ``WebsocketServer``.
 
@@ -184,6 +185,7 @@ class YDocWebSocketHandler(WebSocketHandler, JupyterHandler):
 
     def initialize(
         self,
+        name: str,
         ywebsocket_server: JupyterWebsocketServer,
         file_loaders: FileLoaderMapping,
         ystore_class: type[BaseYStore],
@@ -193,6 +195,7 @@ class YDocWebSocketHandler(WebSocketHandler, JupyterHandler):
         document_load_progressively: bool = False,
         notebook_output_delay_threshold_mb: float | None = 100,
     ) -> None:
+        super().initialize(name)
         self._background_tasks = set()
         # File ID manager cannot be passed as argument as the extension may load after this one
         self._file_id_manager = self.settings["file_id_manager"]
@@ -519,7 +522,7 @@ class YDocWebSocketHandler(WebSocketHandler, JupyterHandler):
         return True
 
 
-class DocSessionHandler(APIHandler):
+class DocSessionHandler(ExtensionHandlerMixin, APIHandler):
     """
     Jupyter Server's handler to retrieve the document's session.
     """
@@ -576,12 +579,16 @@ class DocSessionHandler(APIHandler):
         return self.finish(data)
 
 
-class TimelineHandler(APIHandler):
+class TimelineHandler(ExtensionHandlerMixin, APIHandler):
     auth_resource = "contents"
 
     def initialize(
-        self, ystore_class: type[BaseYStore], ywebsocket_server: JupyterWebsocketServer
+        self,
+        name: str,
+        ystore_class: type[BaseYStore],
+        ywebsocket_server: JupyterWebsocketServer,
     ) -> None:
+        super().initialize(name)
         self.ystore_class = ystore_class
         self.ywebsocket_server = ywebsocket_server
 
@@ -643,10 +650,11 @@ class TimelineHandler(APIHandler):
             self.finish({"code": 404, "error": "Room not found"})
 
 
-class UndoRedoHandler(APIHandler):
+class UndoRedoHandler(ExtensionHandlerMixin, APIHandler):
     auth_resource = "contents"
 
-    def initialize(self, ywebsocket_server: JupyterWebsocketServer) -> None:
+    def initialize(self, name: str, ywebsocket_server: JupyterWebsocketServer) -> None:
+        super().initialize(name)
         self._websocket_server = ywebsocket_server
 
     @web.authenticated
@@ -719,7 +727,7 @@ class UndoRedoHandler(APIHandler):
             self.log.info(f"Fork Document for {room_id} has been removed.")
 
 
-class DocForkHandler(APIHandler):
+class DocForkHandler(ExtensionHandlerMixin, APIHandler):
     """
     Jupyter Server handler to:
     - create a fork of a root document (optionally synchronizing with the root document),
@@ -731,8 +739,10 @@ class DocForkHandler(APIHandler):
 
     def initialize(
         self,
+        name: str,
         ywebsocket_server: JupyterWebsocketServer,
     ) -> None:
+        super().initialize(name)
         self._websocket_server = ywebsocket_server
 
     @web.authenticated

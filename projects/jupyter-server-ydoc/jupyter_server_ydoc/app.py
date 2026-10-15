@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections import defaultdict
 from functools import partial
 from typing import Literal, cast
@@ -12,7 +13,7 @@ from jupyter_ydoc import ydocs as YDOCS
 from jupyter_ydoc.ybasedoc import YBaseDoc
 from pycrdt import Doc
 from pycrdt.store import BaseYStore
-from traitlets import Bool, Float, Type, Unicode
+from traitlets import Bool, Float, Type, Unicode, default
 
 from .handlers import (
     DocForkHandler,
@@ -121,6 +122,11 @@ class YDocExtension(ExtensionApp):
     )
 
     _room_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+
+    @default("log_level")
+    def _default_log_level(self):
+        # Follow the server log level unless configured, so that --log-level also applies here.
+        return self.serverapp.log_level if self.serverapp else logging.INFO
 
     def initialize(self):
         super().initialize()

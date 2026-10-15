@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import nbformat
 import pytest
 from jupyter_server.services.contents.filemanager import FileContentsManager
@@ -92,6 +94,25 @@ def test_settings_should_change_ystore_class(jp_configurable_serverapp):
     settings = app.web_app.settings["jupyter_server_ydoc_config"]
 
     assert settings["ystore_class"] == TempFileYStore
+
+
+def test_log_level_should_follow_server_log_level(jp_configurable_serverapp):
+    argv = ["--ServerApp.log_level=WARN"]
+
+    app = jp_configurable_serverapp(argv=argv)
+    extension = app.web_app.settings["jupyter_server_ydoc"]
+
+    assert extension.log_level == logging.WARN
+
+
+def test_settings_should_change_log_level(jp_configurable_serverapp):
+    argv = ["--ServerApp.log_level=WARN", "--YDocExtension.log_level=DEBUG"]
+
+    app = jp_configurable_serverapp(argv=argv)
+    extension = app.web_app.settings["jupyter_server_ydoc"]
+
+    assert extension.log_level == logging.DEBUG
+    assert app.log_level == logging.WARN
 
 
 async def test_document_ttl_from_settings(rtc_create_mock_document_room, jp_configurable_serverapp):
