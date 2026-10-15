@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections import defaultdict
 from functools import partial
 from typing import Literal, cast
@@ -126,7 +125,7 @@ class YDocExtension(ExtensionApp):
     @default("log_level")
     def _default_log_level(self):
         # Follow the server log level unless configured, so that --log-level also applies here.
-        return self.serverapp.log_level if self.serverapp else logging.INFO
+        return self.serverapp.log_level
 
     def initialize(self):
         super().initialize()
