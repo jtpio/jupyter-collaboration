@@ -288,6 +288,7 @@ def rtc_create_mock_document_room():
         save_delay: float | None = None,
         store: SQLiteYStore | None = None,
         writable: bool = True,
+        document_load_progressively: bool = False,
     ) -> tuple[FakeContentsManager, FileLoader, DocumentRoom]:
         paths = {id: path}
 
@@ -317,7 +318,7 @@ def rtc_create_mock_document_room():
                 store,
                 None,
                 save_delay,
-                document_load_progressively=False,
+                document_load_progressively=document_load_progressively,
             ),
         )
 

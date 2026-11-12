@@ -205,6 +205,8 @@ class DocumentRoom(YRoom):
                             and (exc := self._document_progressively_loaded.exception()) is not None
                         ):
                             raise exc
+                        # Loading the content does not make the document dirty.
+                        self._document.dirty = False
                         self.ready = True
                         await self.ydoc_observed.wait()
                         finish.set()
@@ -218,6 +220,8 @@ class DocumentRoom(YRoom):
                 if self.ystore:
                     await self.ystore.encode_state_as_update(self.ydoc)
 
+            # Loading the content does not make the document dirty.
+            self._document.dirty = False
             self.ready = True
             self._emit(LogLevel.INFO, "initialize", "Room initialized")
         finally:

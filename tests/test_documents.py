@@ -74,6 +74,24 @@ async def test_dirty(
                 await sleep(0.01)
 
 
+async def test_document_is_not_dirty_after_initialization(
+    rtc_create_file,
+    rtc_connect_doc_client,
+):
+    file_format = "text"
+    file_type = "file"
+    file_path = "dummy.txt"
+    await rtc_create_file(file_path, "original")
+    jupyter_ydoc = jupyter_ydocs[file_type]()
+
+    websocket, room_name = await rtc_connect_doc_client(file_format, file_type, file_path)
+    async with websocket as ws, Provider(jupyter_ydoc.ydoc, HttpxWebsocket(ws, room_name)):
+        with fail_after(15):
+            while jupyter_ydoc.source != "original":
+                await sleep(0.01)
+            assert jupyter_ydoc.dirty is False
+
+
 async def cleanup(jp_serverapp):
     # workaround for a shutdown issue of aiosqlite, see
     # https://github.com/jupyterlab/jupyter-collaboration/issues/252

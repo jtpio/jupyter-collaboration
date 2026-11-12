@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from jupyter_server_ydoc.utils import OutOfBandChanges
 from jupyter_ydoc import YUnicode
 
@@ -47,6 +48,54 @@ async def test_should_overwrite_the_store(rtc_create_SQLite_store, rtc_create_mo
     await store.apply_updates(doc.ydoc)
 
     assert doc.source == content
+
+
+@pytest.mark.parametrize("document_load_progressively", [False, True])
+async def test_should_reset_dirty_state_on_initialization(
+    rtc_create_mock_document_room, document_load_progressively
+):
+    content = "test"
+    _, _, room = rtc_create_mock_document_room(
+        "test-id",
+        "test.txt",
+        content,
+        document_load_progressively=document_load_progressively,
+    )
+    # Some document types are dirty until their content is loaded.
+    room._document.dirty = True
+    # Progressive loading needs a started room.
+    start = asyncio.create_task(room.start())
+    await room.started.wait()
+
+    try:
+        await room.initialize()
+        if document_load_progressively:
+            await room._document_progressively_loaded
+
+        assert room._document.source == content
+        assert room._document.dirty is False
+    finally:
+        await room.stop()
+        await start
+
+
+async def test_should_reset_dirty_state_when_initialized_from_store(
+    rtc_create_SQLite_store, rtc_create_mock_document_room
+):
+    id = "test-id"
+    content = "test"
+    store = await rtc_create_SQLite_store("file", id, content)
+    # The stored history has the dirty state of an earlier session.
+    doc = YUnicode()
+    await store.apply_updates(doc.ydoc)
+    doc.dirty = True
+    await store.encode_state_as_update(doc.ydoc)
+    _, _, room = rtc_create_mock_document_room("test-id", "test.txt", content, store=store)
+
+    await room.initialize()
+
+    assert room._document.source == content
+    assert room._document.dirty is False
 
 
 async def test_defined_save_delay_should_save_content_after_document_change(
